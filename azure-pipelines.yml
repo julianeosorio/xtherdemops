@@ -1,0 +1,39 @@
+# Installs selenium module into powershell
+# and runs a powershell selenium script
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+
+- task: Xther-Deployment@0
+  inputs:
+    installDir: 'C:\xther'
+    resources: 'CHR'
+
+- task: InlinePowershell@1
+  displayName: 'Install selenium module into powershell'
+  inputs:
+    Script: |
+      Write-Host "Supress confirmations and force Selenium module installation"
+      Install-Module Selenium -Confirm:$False -Force
+      Write-Host "Identify the powershell selenium module directory"
+      $seModulePath = (gmo -l Selenium).path
+      $targetPath = [System.IO.Path]::GetDirectoryName($seModulePath) + "\assemblies\"
+      cp c:\xther\* $targetPath
+
+- task: PowerShell@2
+  displayName: 'Execute the test'
+  inputs:
+    filePath: 'webTestScript.ps1'
+    arguments: "'$(searchString)'"
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Uploading test evidence'
+  inputs:
+    PathtoPublish: 'c:\xther\webPicture.png'
+    ArtifactName: 'evidencePicture.png'
+    publishLocation: 'Container'
